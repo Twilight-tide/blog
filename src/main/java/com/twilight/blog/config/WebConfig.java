@@ -15,7 +15,13 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(jwtInterceptor)
-                .addPathPatterns("/api/article/**")  // 拦截所有文章相关接口
-                .excludePathPatterns("/api/test/**", "/api/user/login", "/api/user/register");
+                .addPathPatterns("/api/article/**")          // 拦截所有文章接口
+                .excludePathPatterns(
+                        "/api/test/**",
+                        "/api/user/login",
+                        "/api/user/register",
+                        "/api/article/list",                     // ← 公开列表，不拦截
+                        "/api/article/{id}"                      // ← 公开详情，不拦截
+                );
     }
 }
