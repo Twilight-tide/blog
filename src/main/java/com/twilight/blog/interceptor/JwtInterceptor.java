@@ -15,7 +15,6 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 从 Header 中获取 Token
         String token = request.getHeader("Authorization");
         if (token == null || !token.startsWith("Bearer ")) {
             response.setStatus(401);
@@ -23,17 +22,19 @@ public class JwtInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 去掉 "Bearer " 前缀
         token = token.substring(7);
 
         try {
             String username = jwtUtil.extractUsername(token);
+            System.out.println("=== [JwtInterceptor] 解析到用户名: " + username);
+
             if (username == null || jwtUtil.isTokenExpired(token)) {
                 response.setStatus(401);
                 response.getWriter().write("{\"code\":401,\"msg\":\"Token已过期\"}");
                 return false;
             }
-            // 将用户名存入请求属性，供后续使用
+
+            // ★ 关键：把用户名存入 request，供 Controller 使用
             request.setAttribute("username", username);
             return true;
         } catch (Exception e) {

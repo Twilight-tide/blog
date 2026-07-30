@@ -30,15 +30,10 @@ public class SecurityConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        // 允许携带凭证（Cookie/Token）
         config.setAllowCredentials(true);
-        // 允许所有来源（生产环境请换成具体域名）
         config.addAllowedOriginPattern("*");
-        // 允许所有请求头
         config.addAllowedHeader("*");
-        // 允许所有请求方法
-        config.addAllowedMethod("*");
-
+        config.addAllowedMethod("*");  // 允许所有方法（GET, POST, PUT, DELETE, OPTIONS）
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
