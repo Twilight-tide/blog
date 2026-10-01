@@ -10,16 +10,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class JwtUtil {
 
-    private static final String SECRET = "twilightBlogSecretKey2026ForJWTGeneration";
-    private static final Long EXPIRATION = 86400000L;
+    private final SecretKey signingKey;
+    private final long expiration;
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    public JwtUtil(@Value("${jwt.secret}") String secret,
+                   @Value("${jwt.expiration}") long expiration) {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expiration = expiration;
     }
+
 
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
@@ -28,8 +32,8 @@ public class JwtUtil {
                 .claims(claims)
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION))
-                .signWith(getSigningKey())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -48,7 +52,7 @@ public class JwtUtil {
 
     private Claims extractClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
