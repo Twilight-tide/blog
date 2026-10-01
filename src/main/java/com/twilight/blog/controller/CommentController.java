@@ -1,5 +1,6 @@
 package com.twilight.blog.controller;
 
+import com.twilight.blog.annotation.PublicApi;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Comment;
 import com.twilight.blog.repository.CommentRepository;
@@ -22,6 +23,7 @@ public class CommentController {
     private final JwtUtil jwtUtil;
 
     // ====== 获取某篇文章的所有评论（公开） ======
+    @PublicApi
     @GetMapping("/list/{articleId}")
     public R<List<Comment>> list(@PathVariable Long articleId) {
         // 先查顶级评论

@@ -36,3 +36,9 @@ build/
 application-dev.yml
 application-local.yml
 *-local.yml
+/学习进度.md
+
+### 前端构建产物（源码在独立仓库 blog-frontend）
+src/main/resources/static/assets/
+src/main/resources/static/index.html
+src/main/resources/static/

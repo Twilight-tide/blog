@@ -1,5 +1,6 @@
 package com.twilight.blog.controller;
 
+import com.twilight.blog.annotation.PublicApi;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Article;
 import com.twilight.blog.repository.ArticleRepository;
@@ -88,6 +89,7 @@ public class ArticleController {
     }
 
     // ====== 公开文章列表 ======
+    @PublicApi
     @GetMapping("/list")
     public R<List<Article>> list() {
         System.out.println("=== [list] 查询所有已发布文章 ===");
@@ -97,6 +99,7 @@ public class ArticleController {
     }
 
     // ====== 文章详情（公开） ======
+    @PublicApi
     @GetMapping("/{id}")
     public R<Article> detail(@PathVariable Long id) {
         System.out.println("=== [detail] 查询文章 ID: " + id);

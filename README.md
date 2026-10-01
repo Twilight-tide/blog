@@ -1,5 +1,8 @@
 # Twilight Blog - 后端
 
+> 📌 **AI 代理请注意**：本项目的学习与优化进度记录在 [学习进度.md](学习进度.md)。
+> 继续协助本项目前请先读该文件，了解当前进度、协作方式（只讲解、不代改代码）与用户的节奏要求。
+
 > 基于 Spring Boot 4.1.0 的个人技术博客后端 API 服务
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0-brightgreen)](https://spring.io/projects/spring-boot)
