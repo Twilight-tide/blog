@@ -101,6 +101,12 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
+        <!-- HTML 清洗（防 XSS） -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.21.1</version>
+        </dependency>
     </dependencies>
 
     <build>

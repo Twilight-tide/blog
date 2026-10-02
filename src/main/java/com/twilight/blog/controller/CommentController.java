@@ -5,6 +5,7 @@ import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Comment;
 import com.twilight.blog.repository.CommentRepository;
 import com.twilight.blog.repository.UserRepository;
+import com.twilight.blog.utils.HtmlSanitizer;
 import com.twilight.blog.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -63,6 +64,7 @@ public class CommentController {
             comment.setParentId(0L);
         }
 
+        comment.setContent(HtmlSanitizer.clean(comment.getContent()));
         Comment saved = commentRepository.save(comment);
         return R.ok(saved);
     }

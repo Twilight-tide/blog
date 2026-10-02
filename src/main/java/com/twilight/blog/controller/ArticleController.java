@@ -5,6 +5,7 @@ import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Article;
 import com.twilight.blog.repository.ArticleRepository;
 import com.twilight.blog.repository.UserRepository;
+import com.twilight.blog.utils.HtmlSanitizer;
 import com.twilight.blog.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -81,6 +82,7 @@ public class ArticleController {
         article.setLikeCount(0);
 
         System.out.println("=== [publish] 准备保存文章: " + article.getTitle());
+        article.setContent(HtmlSanitizer.clean(article.getContent()));
         Article saved = articleRepository.save(article);
         System.out.println("=== [publish] 文章保存成功，ID: " + saved.getId());
         System.out.println("========================================");
@@ -159,7 +161,7 @@ public class ArticleController {
 
         Article a = existing.get();
         a.setTitle(article.getTitle());
-        a.setContent(article.getContent());
+        a.setContent(HtmlSanitizer.clean(article.getContent()));
         a.setSummary(article.getSummary());
         a.setCategory(article.getCategory());
 
