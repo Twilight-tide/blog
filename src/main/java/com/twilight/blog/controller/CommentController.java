@@ -6,7 +6,6 @@ import com.twilight.blog.entity.Comment;
 import com.twilight.blog.repository.CommentRepository;
 import com.twilight.blog.repository.UserRepository;
 import com.twilight.blog.utils.HtmlSanitizer;
-import com.twilight.blog.utils.JwtUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +20,6 @@ public class CommentController {
 
     private final CommentRepository commentRepository;
     private final UserRepository userRepository;
-    private final JwtUtil jwtUtil;
 
     // ====== 获取某篇文章的所有评论（公开） ======
     @PublicApi
@@ -38,18 +36,6 @@ public class CommentController {
     public R<Comment> publish(@Valid @RequestBody Comment comment, HttpServletRequest request) {
         // 获取当前登录用户
         String username = (String) request.getAttribute("username");
-        if (username == null || username.isEmpty()) {
-            String token = request.getHeader("Authorization");
-            if (token != null && token.startsWith("Bearer ")) {
-                token = token.substring(7);
-                try {
-                    username = jwtUtil.extractUsername(token);
-                } catch (Exception e) {
-                    return R.error("Token 无效");
-                }
-            }
-        }
-
         if (username == null || username.isEmpty()) {
             return R.error("请先登录");
         }
@@ -73,18 +59,6 @@ public class CommentController {
     @DeleteMapping("/{id}")
     public R<String> delete(@PathVariable Long id, HttpServletRequest request) {
         String username = (String) request.getAttribute("username");
-        if (username == null || username.isEmpty()) {
-            String token = request.getHeader("Authorization");
-            if (token != null && token.startsWith("Bearer ")) {
-                token = token.substring(7);
-                try {
-                    username = jwtUtil.extractUsername(token);
-                } catch (Exception e) {
-                    return R.error("Token 无效");
-                }
-            }
-        }
-
         if (username == null || username.isEmpty()) {
             return R.error("请先登录");
         }
