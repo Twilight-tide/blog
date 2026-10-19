@@ -42,3 +42,8 @@ application-local.yml
 src/main/resources/static/assets/
 src/main/resources/static/index.html
 src/main/resources/static/
+
+### 本地临时文件（验收脚本 / 提交信息）
+.verify.ps1
+.commitmsg
+
