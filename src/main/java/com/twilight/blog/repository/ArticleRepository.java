@@ -1,6 +1,8 @@
 package com.twilight.blog.repository;
 
 import com.twilight.blog.entity.Article;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -16,6 +18,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
 
     // 1. 查询所有已发布的文章，按创建时间倒序（最新在前）
     List<Article> findByPublishedTrueOrderByCreateTimeDesc();
+
+    // 1b. 分页版本（page/size 由调用方决定）
+    Page<Article> findByPublishedTrueOrderByCreateTimeDesc(Pageable pageable);
 
     // 2. 查询单篇已发布的文章（确保只能看到已发布的）
     java.util.Optional<Article> findByIdAndPublishedTrue(Long id);

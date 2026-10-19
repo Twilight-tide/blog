@@ -54,9 +54,14 @@ public class ArticleController {
     // ====== 公开文章列表 ======
     @PublicApi
     @GetMapping("/list")
-    public R<List<Article>> list() {
-        List<Article> articles = articleRepository.findByPublishedTrueOrderByCreateTimeDesc();
-        return R.ok(articles);
+    public R<List<Article>> list(@RequestParam(required = false) Integer page,
+                                 @RequestParam(required = false) Integer size) {
+        if (page == null || size == null) {
+            // 兼容旧调用：不传分页参数时返回全量（前端当前依赖此行为）
+            return R.ok(articleRepository.findByPublishedTrueOrderByCreateTimeDesc());
+        }
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return R.ok(articleRepository.findByPublishedTrueOrderByCreateTimeDesc(pageable).getContent());
     }
 
     // ====== 文章详情（公开） ======
