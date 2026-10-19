@@ -2,15 +2,16 @@ spring:
   application:
     name: blog
   datasource:
-    url: jdbc:mysql://localhost:3306/blog_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/blog_db?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
     password: ${MYSQL_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      # 生产不自动改表；加字段请用迁移脚本（避免 update 静默修改列类型）
+      ddl-auto: validate
+    show-sql: false
     open-in-view: false
 
 server:
