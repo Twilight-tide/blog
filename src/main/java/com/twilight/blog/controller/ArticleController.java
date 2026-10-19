@@ -1,6 +1,7 @@
 package com.twilight.blog.controller;
 
 import com.twilight.blog.annotation.PublicApi;
+import com.twilight.blog.common.exception.BusinessException;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Article;
 import com.twilight.blog.repository.ArticleRepository;
@@ -24,6 +25,11 @@ public class ArticleController {
     // ====== 发布文章（需认证） ======
     @PostMapping("/publish")
     public R<Article> publish(@Valid @RequestBody Article article, HttpServletRequest request) {
+        // 防止 id 注入：JPA save() 遇到非空 id 会执行 update，可覆盖他人文章
+        if (article.getId() != null) {
+            throw new BusinessException("不允许指定文章 ID");
+        }
+
         String username = (String) request.getAttribute("username");
         if (username == null || username.isEmpty()) {
             return R.error("请先登录");

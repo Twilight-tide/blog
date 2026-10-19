@@ -1,6 +1,7 @@
 package com.twilight.blog.controller;
 
 import com.twilight.blog.annotation.PublicApi;
+import com.twilight.blog.common.exception.BusinessException;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Comment;
 import com.twilight.blog.repository.CommentRepository;
@@ -34,6 +35,11 @@ public class CommentController {
     // ====== 发表评论（需登录） ======
     @PostMapping("/publish")
     public R<Comment> publish(@Valid @RequestBody Comment comment, HttpServletRequest request) {
+        // 防止 id 注入：JPA save() 遇到非空 id 会执行 update，可覆盖他人评论
+        if (comment.getId() != null) {
+            throw new BusinessException("不允许指定评论 ID");
+        }
+
         // 获取当前登录用户
         String username = (String) request.getAttribute("username");
         if (username == null || username.isEmpty()) {
