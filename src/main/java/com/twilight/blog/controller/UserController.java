@@ -6,7 +6,6 @@ import com.twilight.blog.service.UserService;
 import com.twilight.blog.utils.JwtUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -27,40 +26,24 @@ public class UserController {
 
     @PostMapping("/register")
     public R<User> register(@Valid @RequestBody User user) {
-        try {
-            User registered = userService.register(user);
-            return R.ok(registered);
-        } catch (RuntimeException e) {
-            return R.error(e.getMessage());
-        }
+        return R.ok(userService.register(user));
     }
 
     // ========== 新增登录接口 ==========
     @PostMapping("/login")
     public R<Map<String, String>> login(@RequestBody LoginRequest loginRequest) {
-        try {
-            // 1. 根据用户名查询用户
-            User user = userService.findByUsername(loginRequest.getUsername());
-            if (user == null) {
-                return R.error("用户名或密码错误");
-            }
-
-            // 2. 验证密码
-            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                return R.error("用户名或密码错误");
-            }
-
-            // 3. 生成 JWT Token
-            String token = jwtUtil.generateToken(user.getUsername());
-
-            // 4. 返回 Token
-            Map<String, String> data = new HashMap<>();
-            data.put("token", token);
-            data.put("username", user.getUsername());
-            data.put("nickname", user.getNickname());
-            return R.ok(data);
-        } catch (Exception e) {
-            return R.error("登录失败：" + e.getMessage());
+        User user = userService.findByUsername(loginRequest.getUsername());
+        if (user == null) {
+            return R.error("用户名或密码错误");
         }
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            return R.error("用户名或密码错误");
+        }
+        String token = jwtUtil.generateToken(user.getUsername());
+        Map<String, String> data = new HashMap<>();
+        data.put("token", token);
+        data.put("username", user.getUsername());
+        data.put("nickname", user.getNickname());
+        return R.ok(data);
     }
 }

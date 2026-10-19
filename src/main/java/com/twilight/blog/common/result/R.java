@@ -16,7 +16,11 @@ public class R<T> {
         return new R<>(200, "success", data);
     }
 
+    public static <T> R<T> error(int code, String msg) {
+        return new R<>(code, msg, null);
+    }
+
     public static <T> R<T> error(String msg) {
-        return new R<>(500, msg, null);
+        return error(500, msg);
     }
 }
