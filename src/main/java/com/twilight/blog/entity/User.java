@@ -35,4 +35,8 @@ public class User extends BaseEntity {
     @Size(max = 100, message = "邮箱不能超过 100 个字符")
     @Column(length = 100)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role = UserRole.USER;
 }

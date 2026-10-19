@@ -4,6 +4,7 @@ import com.twilight.blog.annotation.PublicApi;
 import com.twilight.blog.common.exception.BusinessException;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Comment;
+import com.twilight.blog.entity.UserRole;
 import com.twilight.blog.repository.CommentRepository;
 import com.twilight.blog.repository.UserRepository;
 import com.twilight.blog.utils.HtmlSanitizer;
@@ -48,7 +49,7 @@ public class CommentController {
 
         var user = userRepository.findByUsername(username);
         if (user.isEmpty()) {
-            return R.error("用户不存在");
+            throw new BusinessException("用户不存在");
         }
 
         comment.setUserId(user.get().getId());
@@ -71,17 +72,18 @@ public class CommentController {
 
         var user = userRepository.findByUsername(username);
         if (user.isEmpty()) {
-            return R.error("用户不存在");
+            throw new BusinessException("用户不存在");
         }
 
         var comment = commentRepository.findById(id);
         if (comment.isEmpty()) {
-            return R.error("评论不存在");
+            throw new BusinessException("评论不存在");
         }
 
-        // 只有博主（twilight）或评论作者本人可以删除
-        if (!user.get().getUsername().equals("twilight") && !user.get().getId().equals(comment.get().getUserId())) {
-            return R.error("没有权限删除此评论");
+        // 管理员可删除任意评论；普通用户只能删自己的
+        boolean isAdmin = user.get().getRole() == UserRole.ADMIN;
+        if (!isAdmin && !user.get().getId().equals(comment.get().getUserId())) {
+            throw new BusinessException("没有权限删除此评论");
         }
 
         commentRepository.deleteById(id);
