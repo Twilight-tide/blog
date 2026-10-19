@@ -1,12 +1,14 @@
 package com.twilight.blog.controller;
 
 import com.twilight.blog.annotation.PublicApi;
+import com.twilight.blog.common.constant.AuthAttributes;
 import com.twilight.blog.common.exception.BusinessException;
+import com.twilight.blog.common.exception.ForbiddenException;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Comment;
-import com.twilight.blog.entity.UserRole;
+import com.twilight.blog.entity.User;
 import com.twilight.blog.repository.CommentRepository;
-import com.twilight.blog.repository.UserRepository;
+import com.twilight.blog.service.PermissionService;
 import com.twilight.blog.utils.HtmlSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -21,7 +23,7 @@ import java.util.List;
 public class CommentController {
 
     private final CommentRepository commentRepository;
-    private final UserRepository userRepository;
+    private final PermissionService permissionService;
 
     // ====== 获取某篇文章的所有评论（公开） ======
     @PublicApi
@@ -33,7 +35,7 @@ public class CommentController {
         return R.ok(topComments);
     }
 
-    // ====== 发表评论（需登录） ======
+    // ====== 发表评论（需登录，任何角色都可以） ======
     @PostMapping("/publish")
     public R<Comment> publish(@Valid @RequestBody Comment comment, HttpServletRequest request) {
         // 防止 id 注入：JPA save() 遇到非空 id 会执行 update，可覆盖他人评论
@@ -41,52 +43,42 @@ public class CommentController {
             throw new BusinessException("不允许指定评论 ID");
         }
 
-        // 获取当前登录用户
-        String username = (String) request.getAttribute("username");
-        if (username == null || username.isEmpty()) {
-            return R.error("请先登录");
+        User user = currentUser(request);
+        if (user == null) {
+            throw new BusinessException(401, "请先登录");
         }
 
-        var user = userRepository.findByUsername(username);
-        if (user.isEmpty()) {
-            throw new BusinessException("用户不存在");
-        }
-
-        comment.setUserId(user.get().getId());
+        comment.setUserId(user.getId());
         if (comment.getParentId() == null) {
             comment.setParentId(0L);
         }
 
         comment.setContent(HtmlSanitizer.clean(comment.getContent()));
-        Comment saved = commentRepository.save(comment);
-        return R.ok(saved);
+        return R.ok(commentRepository.save(comment));
     }
 
-    // ====== 删除评论（仅作者或博主） ======
+    // ====== 删除评论（评论作者本人或管理员） ======
     @DeleteMapping("/{id}")
     public R<String> delete(@PathVariable Long id, HttpServletRequest request) {
-        String username = (String) request.getAttribute("username");
-        if (username == null || username.isEmpty()) {
-            return R.error("请先登录");
-        }
-
-        var user = userRepository.findByUsername(username);
-        if (user.isEmpty()) {
-            throw new BusinessException("用户不存在");
+        User user = currentUser(request);
+        if (user == null) {
+            throw new BusinessException(401, "请先登录");
         }
 
         var comment = commentRepository.findById(id);
         if (comment.isEmpty()) {
-            throw new BusinessException("评论不存在");
+            throw new BusinessException(404, "评论不存在");
         }
 
-        // 管理员可删除任意评论；普通用户只能删自己的
-        boolean isAdmin = user.get().getRole() == UserRole.ADMIN;
-        if (!isAdmin && !user.get().getId().equals(comment.get().getUserId())) {
-            throw new BusinessException("没有权限删除此评论");
+        if (!permissionService.canDeleteComment(user, comment.get())) {
+            throw new ForbiddenException("没有权限删除此评论");
         }
 
         commentRepository.deleteById(id);
         return R.ok("删除成功");
+    }
+
+    private User currentUser(HttpServletRequest request) {
+        return (User) request.getAttribute(AuthAttributes.CURRENT_USER);
     }
 }

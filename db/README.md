@@ -8,15 +8,37 @@
 mysql -u root -p < db/schema.sql
 ```
 
-schema 已包含 `CREATE DATABASE IF NOT EXISTS blog_db`，导入后即有 `article`、`comment`、`user` 三张表（含 `user.role` 列）。
+schema 已包含 `CREATE DATABASE IF NOT EXISTS blog_db`，导入后即有 `article`、`comment`、`user` 三张表（含 `user.role`、`user.enabled`、`user.remark`、`user.last_login_time`）。
+
+## 已有数据库升级（角色体系 v2）
+
+如果数据库是旧版本（`user` 表还没有 `enabled` / `remark` / `last_login_time`），执行一次升级脚本：
+
+```bash
+mysql -u root -p < db/upgrade-v2-roles.sql
+```
+
+它会给 `user` 表补上账号管理所需字段，并把历史上发过文章的用户自动升级为 `AUTHOR`。**只执行一次**，全新安装不需要。
+
+## 角色说明
+
+| 角色 | 能做什么 |
+|---|---|
+| `USER` | 注册即得。浏览文章、发表评论、删除自己的评论 |
+| `AUTHOR` | 由管理员在后台授予。额外可发布文章、编辑/删除自己的文章、进入作者中心 |
+| `ADMIN` | 站长。最高权限：管理所有账号、编辑/下架/删除任意文章与评论、进入后台 |
+
+发文章**不靠注册**，必须由管理员在后台「账号管理」里把用户角色改为「作者」。
 
 ## 设置管理员
 
-注册账号后，把你要作为博主的账号提升为 `ADMIN`（只有 `ADMIN` 能删除他人评论）：
+注册账号后，把你要作为站长的账号提升为 `ADMIN`：
 
 ```sql
 UPDATE user SET role = 'ADMIN' WHERE username = '你的用户名';
 ```
+
+也可以直接改数据库。注意系统会阻止「把自己降级」和「封禁自己」，并且必须至少保留一名管理员。
 
 ## 生产环境变量
 

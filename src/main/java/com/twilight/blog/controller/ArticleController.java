@@ -1,11 +1,14 @@
 package com.twilight.blog.controller;
 
 import com.twilight.blog.annotation.PublicApi;
+import com.twilight.blog.common.constant.AuthAttributes;
 import com.twilight.blog.common.exception.BusinessException;
+import com.twilight.blog.common.exception.ForbiddenException;
 import com.twilight.blog.common.result.R;
 import com.twilight.blog.entity.Article;
+import com.twilight.blog.entity.User;
 import com.twilight.blog.repository.ArticleRepository;
-import com.twilight.blog.repository.UserRepository;
+import com.twilight.blog.service.PermissionService;
 import com.twilight.blog.utils.HtmlSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -20,9 +23,9 @@ import java.util.List;
 public class ArticleController {
 
     private final ArticleRepository articleRepository;
-    private final UserRepository userRepository;
+    private final PermissionService permissionService;
 
-    // ====== 发布文章（需认证） ======
+    // ====== 发布文章（需 ADMIN 或 AUTHOR） ======
     @PostMapping("/publish")
     public R<Article> publish(@Valid @RequestBody Article article, HttpServletRequest request) {
         // 防止 id 注入：JPA save() 遇到非空 id 会执行 update，可覆盖他人文章
@@ -30,18 +33,13 @@ public class ArticleController {
             throw new BusinessException("不允许指定文章 ID");
         }
 
-        String username = (String) request.getAttribute("username");
-        if (username == null || username.isEmpty()) {
-            return R.error("请先登录");
-        }
-
-        var user = userRepository.findByUsername(username);
-        if (user.isEmpty()) {
-            return R.error("用户不存在，请重新登录");
+        User user = currentUser(request);
+        if (!permissionService.canPublish(user)) {
+            throw new ForbiddenException("当前账号没有发布文章的权限，请联系管理员申请成为作者");
         }
 
         // 设置文章属性
-        article.setAuthorId(user.get().getId());
+        article.setAuthorId(user.getId());
         article.setPublished(true);
         article.setViewCount(0);
         article.setLikeCount(0);
@@ -64,13 +62,20 @@ public class ArticleController {
         return R.ok(articleRepository.findByPublishedTrueOrderByCreateTimeDesc(pageable).getContent());
     }
 
+    // ====== 我的文章（作者中心） ======
+    @GetMapping("/mine")
+    public R<List<Article>> mine(HttpServletRequest request) {
+        User user = currentUser(request);
+        return R.ok(articleRepository.findByAuthorIdOrderByCreateTimeDesc(user.getId()));
+    }
+
     // ====== 文章详情（公开） ======
     @PublicApi
     @GetMapping("/{id}")
     public R<Article> detail(@PathVariable Long id) {
         var article = articleRepository.findByIdAndPublishedTrue(id);
         if (article.isEmpty()) {
-            return R.error(404, "文章不存在或未发布");
+            throw new BusinessException(404, "文章不存在或未发布");
         }
 
         // 原子自增，避免并发下读-改-写丢更新
@@ -81,23 +86,17 @@ public class ArticleController {
         return R.ok(a);
     }
 
-    // ====== 更新文章（需认证） ======
+    // ====== 更新文章（作者本人或管理员） ======
     @PutMapping("/{id}")
     public R<Article> update(@PathVariable Long id, @Valid @RequestBody Article article, HttpServletRequest request) {
-        String username = (String) request.getAttribute("username");
-
-        if (username == null || username.isEmpty()) {
-            return R.error("请先登录");
-        }
+        User user = currentUser(request);
 
         var existing = articleRepository.findById(id);
         if (existing.isEmpty()) {
-            return R.error("文章不存在");
+            throw new BusinessException(404, "文章不存在");
         }
-
-        var user = userRepository.findByUsername(username);
-        if (user.isEmpty() || !user.get().getId().equals(existing.get().getAuthorId())) {
-            return R.error("没有权限修改此文章");
+        if (!permissionService.canEditArticle(user, existing.get())) {
+            throw new ForbiddenException("没有权限修改此文章");
         }
 
         Article a = existing.get();
@@ -106,30 +105,27 @@ public class ArticleController {
         a.setSummary(article.getSummary());
         a.setCategory(article.getCategory());
 
-        Article saved = articleRepository.save(a);
-        return R.ok(saved);
+        return R.ok(articleRepository.save(a));
     }
 
-    // ====== 删除文章（需认证） ======
+    // ====== 删除文章（作者本人或管理员） ======
     @DeleteMapping("/{id}")
     public R<String> delete(@PathVariable Long id, HttpServletRequest request) {
-        String username = (String) request.getAttribute("username");
-
-        if (username == null || username.isEmpty()) {
-            return R.error("请先登录");
-        }
+        User user = currentUser(request);
 
         var existing = articleRepository.findById(id);
         if (existing.isEmpty()) {
-            return R.error("文章不存在");
+            throw new BusinessException(404, "文章不存在");
         }
-
-        var user = userRepository.findByUsername(username);
-        if (user.isEmpty() || !user.get().getId().equals(existing.get().getAuthorId())) {
-            return R.error("没有权限删除此文章");
+        if (!permissionService.canDeleteArticle(user, existing.get())) {
+            throw new ForbiddenException("没有权限删除此文章");
         }
 
         articleRepository.deleteById(id);
         return R.ok("删除成功");
+    }
+
+    private User currentUser(HttpServletRequest request) {
+        return (User) request.getAttribute(AuthAttributes.CURRENT_USER);
     }
 }

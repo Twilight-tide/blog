@@ -9,6 +9,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDateTime;
+
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Entity
@@ -39,4 +41,16 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private UserRole role = UserRole.USER;
+
+    /** 账号是否可用。封禁后无法登录，已签发的 token 也会被拦截器拒绝。 */
+    @Column(nullable = false)
+    private Boolean enabled = true;
+
+    /** 管理员备注，用于标记「朋友」「测试号」等。 */
+    @Size(max = 200, message = "备注不能超过 200 个字符")
+    @Column(length = 200)
+    private String remark;
+
+    /** 最近一次登录时间，后台账号列表展示用。 */
+    private LocalDateTime lastLoginTime;
 }

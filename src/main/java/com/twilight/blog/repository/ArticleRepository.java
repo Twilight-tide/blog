@@ -30,4 +30,19 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     @Transactional
     @Query("update Article a set a.viewCount = a.viewCount + 1 where a.id = :id and a.published = true")
     int incrementViewCount(@Param("id") Long id);
+
+    long countByPublishedTrue();
+
+    /**
+     * 后台文章搜索：标题关键字与发布状态均可为空（不筛选）。
+     * keyword 与 published 由调用方保证空值传 null。
+     */
+    @Query("""
+            select a from Article a
+            where (:keyword is null or a.title like concat('%', :keyword, '%'))
+              and (:published is null or a.published = :published)
+            """)
+    Page<Article> search(@Param("keyword") String keyword,
+                         @Param("published") Boolean published,
+                         Pageable pageable);
 }

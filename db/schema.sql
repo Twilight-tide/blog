@@ -57,6 +57,9 @@ CREATE TABLE `user` (
   `password` varchar(64) NOT NULL,
   `username` varchar(20) NOT NULL,
   `role` varchar(20) NOT NULL DEFAULT 'USER',
+  `enabled` bit(1) NOT NULL DEFAULT b'1',
+  `remark` varchar(200) DEFAULT NULL,
+  `last_login_time` datetime(6) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `UKsb8bbouer5wak8vyiiy4pf2bx` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
