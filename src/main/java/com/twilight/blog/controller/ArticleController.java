@@ -65,14 +65,14 @@ public class ArticleController {
     public R<Article> detail(@PathVariable Long id) {
         var article = articleRepository.findByIdAndPublishedTrue(id);
         if (article.isEmpty()) {
-            return R.error("文章不存在或未发布");
+            return R.error(404, "文章不存在或未发布");
         }
 
-        // 增加浏览量
+        // 原子自增，避免并发下读-改-写丢更新
+        articleRepository.incrementViewCount(id);
+
         Article a = article.get();
         a.setViewCount(a.getViewCount() + 1);
-        articleRepository.save(a);
-
         return R.ok(a);
     }
 
