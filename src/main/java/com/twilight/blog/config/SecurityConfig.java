@@ -34,10 +34,13 @@ public class SecurityConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        // 白名单：只允许明确列出的来源
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",   // Vite 开发服务器
-                "http://localhost:8080"    // 前端产物由后端直接提供时
+        // 开发时前端可能跑在 5173、5174 等任意端口，这里放行本机所有端口，
+        // 避免换个端口就报 403 "Invalid CORS request"。
+        // 生产环境同源部署（Nginx 反代）用不到 CORS；若以后前后端分域名，
+        // 把正式域名加进这个列表。
+        config.setAllowedOriginPatterns(List.of(
+                "http://localhost:[*]",
+                "http://127.0.0.1:[*]"
         ));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
