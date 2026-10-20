@@ -22,6 +22,9 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     // 1b. 分页版本（page/size 由调用方决定）
     Page<Article> findByPublishedTrueOrderByCreateTimeDesc(Pageable pageable);
 
+    // 1c. 按分类分页
+    Page<Article> findByPublishedTrueAndCategoryOrderByCreateTimeDesc(String category, Pageable pageable);
+
     // 2. 查询单篇已发布的文章（确保只能看到已发布的）
     java.util.Optional<Article> findByIdAndPublishedTrue(Long id);
 
@@ -32,6 +35,14 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
     int incrementViewCount(@Param("id") Long id);
 
     long countByPublishedTrue();
+
+    /** 首页分类筛选用的去重分类列表（只统计已发布文章）。 */
+    @Query("""
+            select distinct a.category from Article a
+            where a.published = true and a.category is not null and a.category <> ''
+            order by a.category
+            """)
+    List<String> findDistinctCategories();
 
     /**
      * 后台文章搜索：标题关键字与发布状态均可为空（不筛选）。

@@ -4,7 +4,10 @@ import com.twilight.blog.annotation.PublicApi;
 import com.twilight.blog.common.constant.AuthAttributes;
 import com.twilight.blog.common.exception.BusinessException;
 import com.twilight.blog.common.exception.ForbiddenException;
+import com.twilight.blog.common.result.PageResult;
 import com.twilight.blog.common.result.R;
+import com.twilight.blog.common.util.PageRequests;
+import com.twilight.blog.common.util.Texts;
 import com.twilight.blog.entity.Article;
 import com.twilight.blog.entity.User;
 import com.twilight.blog.repository.ArticleRepository;
@@ -13,6 +16,9 @@ import com.twilight.blog.utils.HtmlSanitizer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -49,20 +55,85 @@ public class ArticleController {
         return R.ok(articleRepository.save(article));
     }
 
-    // ====== 公开文章列表 ======
+    // ====== 保存草稿（需 ADMIN 或 AUTHOR） ======
+    @PostMapping("/draft")
+    public R<Article> saveDraft(@RequestBody Article article, HttpServletRequest request) {
+        if (article.getId() != null) {
+            throw new BusinessException("不允许指定文章 ID");
+        }
+
+        User user = currentUser(request);
+        if (!permissionService.canPublish(user)) {
+            throw new ForbiddenException("当前账号没有发布文章的权限，请联系管理员申请成为作者");
+        }
+
+        article.setAuthorId(user.getId());
+        article.setPublished(false);
+        article.setViewCount(0);
+        article.setLikeCount(0);
+        if (article.getTitle() == null || article.getTitle().isBlank()) {
+            article.setTitle("未命名草稿");
+        }
+        // 草稿允许内容为空，但实体上的 @NotBlank 会在保存时被 Hibernate 校验，
+        // 所以空内容用一个空段落占位；真正发布时再要求有内容。
+        String cleaned = HtmlSanitizer.clean(article.getContent() == null ? "" : article.getContent());
+        article.setContent(cleaned == null || cleaned.isBlank() ? "<p></p>" : cleaned);
+        return R.ok(articleRepository.save(article));
+    }
+
+    // ====== 发布草稿（作者本人或管理员） ======
+    @PatchMapping("/{id}/publish")
+    public R<Article> publishDraft(@PathVariable Long id, HttpServletRequest request) {
+        User user = currentUser(request);
+        Article article = articleRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "文章不存在"));
+        if (!permissionService.canEditArticle(user, article)) {
+            throw new ForbiddenException("没有权限发布此文章");
+        }
+        if (article.getTitle() == null || article.getTitle().isBlank()) {
+            throw new BusinessException("请先填写标题");
+        }
+        if (article.getContent() == null || article.getContent().isBlank()) {
+            throw new BusinessException("请先填写内容");
+        }
+        article.setPublished(true);
+        return R.ok(articleRepository.save(article));
+    }
+
+    // ====== 公开文章列表（兼容旧调用：不传分页参数时返回全量） ======
     @PublicApi
     @GetMapping("/list")
     public R<List<Article>> list(@RequestParam(required = false) Integer page,
                                  @RequestParam(required = false) Integer size) {
         if (page == null || size == null) {
-            // 兼容旧调用：不传分页参数时返回全量（前端当前依赖此行为）
             return R.ok(articleRepository.findByPublishedTrueOrderByCreateTimeDesc());
         }
-        var pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        var pageable = PageRequests.of(page, size, Sort.by(Sort.Direction.DESC, "createTime"));
         return R.ok(articleRepository.findByPublishedTrueOrderByCreateTimeDesc(pageable).getContent());
     }
 
-    // ====== 我的文章（作者中心） ======
+    // ====== 首页分页（公开，页码从 1 开始） ======
+    @PublicApi
+    @GetMapping("/page")
+    public R<PageResult<Article>> page(@RequestParam(defaultValue = "1") int page,
+                                       @RequestParam(defaultValue = "9") int size,
+                                       @RequestParam(required = false) String category) {
+        Pageable pageable = PageRequests.of(page, size, Sort.by(Sort.Direction.DESC, "createTime"));
+        String cat = Texts.blankToNull(category);
+        Page<Article> result = cat == null
+                ? articleRepository.findByPublishedTrueOrderByCreateTimeDesc(pageable)
+                : articleRepository.findByPublishedTrueAndCategoryOrderByCreateTimeDesc(cat, pageable);
+        return R.ok(PageResult.ofOneBased(result));
+    }
+
+    // ====== 分类列表（公开） ======
+    @PublicApi
+    @GetMapping("/categories")
+    public R<List<String>> categories() {
+        return R.ok(articleRepository.findDistinctCategories());
+    }
+
+    // ====== 我的文章（作者中心，含草稿） ======
     @GetMapping("/mine")
     public R<List<Article>> mine(HttpServletRequest request) {
         User user = currentUser(request);

@@ -14,6 +14,12 @@ spring:
     show-sql: false
     open-in-view: false
 
+  servlet:
+    multipart:
+      # 与 UploadService 里的 5MB 上限保持一致
+      max-file-size: 5MB
+      max-request-size: 6MB
+
 server:
   port: 8080
 

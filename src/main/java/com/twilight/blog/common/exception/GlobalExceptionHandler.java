@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
@@ -43,6 +44,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public R<Void> handleUnreadable(HttpMessageNotReadableException e) {
         return R.error(400, "请求体格式错误，请检查是否为合法 JSON");
+    }
+
+    /** 上传文件超过 Spring 配置的大小上限 */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public R<Void> handleUploadTooLarge(MaxUploadSizeExceededException e) {
+        return R.error(400, "图片不能超过 5MB");
     }
 
     /** 404：接口或静态资源不存在 */

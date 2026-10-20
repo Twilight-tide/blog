@@ -43,8 +43,12 @@ src/main/resources/static/assets/
 src/main/resources/static/index.html
 src/main/resources/static/
 
-### 本地临时文件（验收脚本 / 提交信息 / 截图）
+### 本地临时文件（验收脚本 / 提交信息 / 截图 / 草稿）
 .verify*.ps1
 .commitmsg
 .shots/
+.drafts/
+
+### 用户上传的图片（本机存储，不进版本库）
+/uploads/
 
